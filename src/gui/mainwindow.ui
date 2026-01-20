@@ -1,0 +1,980 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1400</width>
+    <height>900</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>1200</width>
+    <height>800</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>液压脚撑可靠性测试系统 - EtherCAT Control</string>
+  </property>
+  <property name="styleSheet">
+   <string>
+QMainWindow {
+    background-color: #f3f4f6;
+}
+QGroupBox {
+    font-weight: bold;
+    font-size: 14px;
+    color: #333333;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    margin-top: 12px;
+    padding-top: 10px;
+    background-color: #ffffff;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 12px;
+    padding: 0 6px;
+    color: #333333;
+}
+QPushButton {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 13px;
+}
+QPushButton:hover {
+    background-color: #f3f4f6;
+}
+QPushButton:pressed {
+    background-color: #e5e7eb;
+}
+QPushButton:disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+}
+QLabel {
+    color: #333333;
+    font-size: 12px;
+}
+QProgressBar {
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    text-align: center;
+    background-color: #f3f4f6;
+    color: #333333;
+}
+QProgressBar::chunk {
+    background-color: #2563eb;
+    border-radius: 3px;
+}
+QTextEdit {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 11px;
+}
+QSpinBox, QDoubleSpinBox {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 4px;
+}
+   </string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="mainLayout">
+    <property name="spacing">
+     <number>10</number>
+    </property>
+    <property name="leftMargin">
+     <number>10</number>
+    </property>
+    <property name="topMargin">
+     <number>10</number>
+    </property>
+    <property name="rightMargin">
+     <number>10</number>
+    </property>
+    <property name="bottomMargin">
+     <number>10</number>
+    </property>
+    <!-- 左侧面板 -->
+    <item>
+     <layout class="QVBoxLayout" name="leftPanel">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <!-- 系统状态 -->
+      <item>
+       <widget class="QGroupBox" name="grpSystemStatus">
+        <property name="title">
+         <string>系统状态</string>
+        </property>
+        <property name="maximumHeight">
+         <number>100</number>
+        </property>
+        <layout class="QHBoxLayout" name="statusLayout">
+         <item>
+          <widget class="QLabel" name="lblStatusTitle">
+           <property name="text">
+            <string>运行状态:</string>
+           </property>
+           <property name="styleSheet">
+            <string>font-size: 14px;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="lblSystemStatus">
+           <property name="text">
+            <string>● 运行中</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #2563eb; font-weight: bold; font-size: 16px;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="statusSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="lblUptime">
+           <property name="text">
+            <string>运行时长: 00:00:00</string>
+           </property>
+           <property name="styleSheet">
+            <string>font-size: 13px; color: #666666;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <!-- 压力传感器监控 -->
+      <item>
+       <widget class="QGroupBox" name="grpPressure">
+        <property name="title">
+         <string>压力传感器监控 (EL3074)</string>
+        </property>
+        <layout class="QGridLayout" name="pressureLayout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <!-- 通道1 -->
+         <item row="0" column="0">
+          <widget class="QLabel" name="lblP1Title">
+           <property name="text">
+            <string>通道 1</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QProgressBar" name="progressP1">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>0</number>
+           </property>
+           <property name="minimumWidth">
+            <number>150</number>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="lblP1Value">
+           <property name="text">
+            <string>0.00 bar</string>
+           </property>
+           <property name="minimumWidth">
+            <number>80</number>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-size: 16px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QLabel" name="lblP1Status">
+           <property name="text">
+            <string>正常</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333;</string>
+           </property>
+          </widget>
+         </item>
+         <!-- 通道2 -->
+         <item row="1" column="0">
+          <widget class="QLabel" name="lblP2Title">
+           <property name="text">
+            <string>通道 2</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QProgressBar" name="progressP2">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>0</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLabel" name="lblP2Value">
+           <property name="text">
+            <string>0.00 bar</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-size: 16px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QLabel" name="lblP2Status">
+           <property name="text">
+            <string>正常</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333;</string>
+           </property>
+          </widget>
+         </item>
+         <!-- 通道3 -->
+         <item row="2" column="0">
+          <widget class="QLabel" name="lblP3Title">
+           <property name="text">
+            <string>通道 3</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QProgressBar" name="progressP3">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>0</number>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLabel" name="lblP3Value">
+           <property name="text">
+            <string>0.00 bar</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-size: 16px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <widget class="QLabel" name="lblP3Status">
+           <property name="text">
+            <string>正常</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333;</string>
+           </property>
+          </widget>
+         </item>
+         <!-- 通道4 -->
+         <item row="3" column="0">
+          <widget class="QLabel" name="lblP4Title">
+           <property name="text">
+            <string>通道 4</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QProgressBar" name="progressP4">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>0</number>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
+          <widget class="QLabel" name="lblP4Value">
+           <property name="text">
+            <string>0.00 bar</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-size: 16px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="3">
+          <widget class="QLabel" name="lblP4Status">
+           <property name="text">
+            <string>正常</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <!-- 继电器控制 -->
+      <item>
+       <widget class="QGroupBox" name="grpRelay">
+        <property name="title">
+         <string>继电器控制 (EL2634)</string>
+        </property>
+        <layout class="QGridLayout" name="relayLayout">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="btnRelay1">
+           <property name="text">
+            <string>通道1 - 支撑</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="minimumHeight">
+            <number>50</number>
+           </property>
+           <property name="styleSheet">
+            <string>QPushButton:checked { background-color: #2563eb; color: white; border: none; }</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="btnRelay2">
+           <property name="text">
+            <string>通道2 - 收回</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="minimumHeight">
+            <number>50</number>
+           </property>
+           <property name="styleSheet">
+            <string>QPushButton:checked { background-color: #2563eb; color: white; border: none; }</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="btnRelay3">
+           <property name="text">
+            <string>通道3 - 备用</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="minimumHeight">
+            <number>50</number>
+           </property>
+           <property name="styleSheet">
+            <string>QPushButton:checked { background-color: #2563eb; color: white; border: none; }</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="btnRelay4">
+           <property name="text">
+            <string>通道4 - 备用</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="minimumHeight">
+            <number>50</number>
+           </property>
+           <property name="styleSheet">
+            <string>QPushButton:checked { background-color: #2563eb; color: white; border: none; }</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0" colspan="2">
+          <widget class="QPushButton" name="btnAllRelaysOff">
+           <property name="text">
+            <string>全部关闭</string>
+           </property>
+           <property name="minimumHeight">
+            <number>35</number>
+           </property>
+           <property name="styleSheet">
+            <string>background-color: #333333; color: white; border: none;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <!-- 数字输入状态 -->
+      <item>
+       <widget class="QGroupBox" name="grpDigitalInput">
+        <property name="title">
+         <string>数字输入状态 (EL1008)</string>
+        </property>
+        <layout class="QGridLayout" name="diLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="lblDI1">
+           <property name="text">
+            <string>DI1: OFF</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="styleSheet">
+            <string>background-color: #f3f4f6; padding: 8px; border-radius: 4px; color: #666666;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="lblDI2">
+           <property name="text">
+            <string>DI2: OFF</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="styleSheet">
+            <string>background-color: #f3f4f6; padding: 8px; border-radius: 4px; color: #666666;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="lblDI3">
+           <property name="text">
+            <string>DI3: OFF</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="styleSheet">
+            <string>background-color: #f3f4f6; padding: 8px; border-radius: 4px; color: #666666;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QLabel" name="lblDI4">
+           <property name="text">
+            <string>DI4: OFF</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="styleSheet">
+            <string>background-color: #f3f4f6; padding: 8px; border-radius: 4px; color: #666666;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="lblDI5">
+           <property name="text">
+            <string>DI5: OFF</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="styleSheet">
+            <string>background-color: #f3f4f6; padding: 8px; border-radius: 4px; color: #666666;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="lblDI6">
+           <property name="text">
+            <string>DI6: OFF</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="styleSheet">
+            <string>background-color: #f3f4f6; padding: 8px; border-radius: 4px; color: #666666;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLabel" name="lblDI7">
+           <property name="text">
+            <string>DI7: OFF</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="styleSheet">
+            <string>background-color: #f3f4f6; padding: 8px; border-radius: 4px; color: #666666;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QLabel" name="lblDI8">
+           <property name="text">
+            <string>DI8: OFF</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="styleSheet">
+            <string>background-color: #f3f4f6; padding: 8px; border-radius: 4px; color: #666666;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <spacer name="leftSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <!-- 右侧面板 -->
+    <item>
+     <layout class="QVBoxLayout" name="rightPanel">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <!-- 测试控制 -->
+      <item>
+       <widget class="QGroupBox" name="grpTestControl">
+        <property name="title">
+         <string>可靠性测试控制</string>
+        </property>
+        <layout class="QVBoxLayout" name="testLayout">
+         <!-- 测试参数 -->
+         <item>
+          <layout class="QGridLayout" name="paramLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="lblSupportTarget">
+             <property name="text">
+              <string>支撑目标压力:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="spinSupportTarget">
+             <property name="suffix">
+              <string> bar</string>
+             </property>
+             <property name="minimum">
+              <double>1.0</double>
+             </property>
+             <property name="maximum">
+              <double>100.0</double>
+             </property>
+             <property name="value">
+              <double>22.0</double>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QLabel" name="lblSupportTimeout">
+             <property name="text">
+              <string>超时:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="3">
+            <widget class="QSpinBox" name="spinSupportTimeout">
+             <property name="suffix">
+              <string> 秒</string>
+             </property>
+             <property name="minimum">
+              <number>5</number>
+             </property>
+             <property name="maximum">
+              <number>120</number>
+             </property>
+             <property name="value">
+              <number>15</number>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="lblRetractTarget">
+             <property name="text">
+              <string>收回目标压力:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QDoubleSpinBox" name="spinRetractTarget">
+             <property name="suffix">
+              <string> bar</string>
+             </property>
+             <property name="minimum">
+              <double>0.0</double>
+             </property>
+             <property name="maximum">
+              <double>10.0</double>
+             </property>
+             <property name="value">
+              <double>1.0</double>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QLabel" name="lblRetractTimeout">
+             <property name="text">
+              <string>超时:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="3">
+            <widget class="QSpinBox" name="spinRetractTimeout">
+             <property name="suffix">
+              <string> 秒</string>
+             </property>
+             <property name="minimum">
+              <number>5</number>
+             </property>
+             <property name="maximum">
+              <number>120</number>
+             </property>
+             <property name="value">
+              <number>15</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <!-- 测试按钮 -->
+         <item>
+          <layout class="QHBoxLayout" name="testBtnLayout">
+           <item>
+            <widget class="QPushButton" name="btnSupportTest">
+             <property name="text">
+              <string>支撑测试</string>
+             </property>
+             <property name="minimumHeight">
+              <number>45</number>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnRetractTest">
+             <property name="text">
+              <string>收回测试</string>
+             </property>
+             <property name="minimumHeight">
+              <number>45</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="reliabilityBtnLayout">
+           <item>
+            <widget class="QPushButton" name="btnStartReliability">
+             <property name="text">
+              <string>▶ 开始可靠性测试</string>
+             </property>
+             <property name="minimumHeight">
+              <number>50</number>
+             </property>
+             <property name="styleSheet">
+              <string>background-color: #2563eb; font-size: 14px; color: white; border: none;</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnStopReliability">
+             <property name="text">
+              <string>■ 停止测试</string>
+             </property>
+             <property name="minimumHeight">
+              <number>50</number>
+             </property>
+             <property name="styleSheet">
+              <string>background-color: #333333; font-size: 14px; color: white; border: none;</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <!-- 测试统计 -->
+      <item>
+       <widget class="QGroupBox" name="grpStats">
+        <property name="title">
+         <string>测试统计</string>
+        </property>
+        <layout class="QGridLayout" name="statsLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="lblCyclesTitle">
+           <property name="text">
+            <string>测试周期:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="lblCyclesValue">
+           <property name="text">
+            <string>0</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #2563eb; font-size: 18px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="lblRuntimeTitle">
+           <property name="text">
+            <string>运行时间:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QLabel" name="lblRuntimeValue">
+           <property name="text">
+            <string>00:00:00</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #2563eb; font-size: 18px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="lblSupportSuccessTitle">
+           <property name="text">
+            <string>支撑成功率:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="lblSupportSuccessValue">
+           <property name="text">
+            <string>0.00%</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-size: 16px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLabel" name="lblRetractSuccessTitle">
+           <property name="text">
+            <string>收回成功率:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QLabel" name="lblRetractSuccessValue">
+           <property name="text">
+            <string>0.00%</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-size: 16px; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="lblAvgSupportTitle">
+           <property name="text">
+            <string>平均支撑时间:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLabel" name="lblAvgSupportValue">
+           <property name="text">
+            <string>0 ms</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLabel" name="lblAvgRetractTitle">
+           <property name="text">
+            <string>平均收回时间:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <widget class="QLabel" name="lblAvgRetractValue">
+           <property name="text">
+            <string>0 ms</string>
+           </property>
+           <property name="styleSheet">
+            <string>color: #333333; font-weight: bold;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0" colspan="4">
+          <widget class="QLabel" name="lblTestStatus">
+           <property name="text">
+            <string>测试状态: 空闲</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+           <property name="styleSheet">
+            <string>background-color: #f3f4f6; padding: 10px; border-radius: 4px; font-size: 14px; color: #666666; border: 1px solid #e5e7eb;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <!-- 日志显示 -->
+      <item>
+       <widget class="QGroupBox" name="grpLog">
+        <property name="title">
+         <string>系统日志</string>
+        </property>
+        <layout class="QVBoxLayout" name="logLayout">
+         <item>
+          <widget class="QTextEdit" name="txtLog">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="minimumHeight">
+            <number>200</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="logBtnLayout">
+           <item>
+            <widget class="QPushButton" name="btnClearLog">
+             <property name="text">
+              <string>清空日志</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnExportLog">
+             <property name="text">
+              <string>导出日志</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnExportReport">
+             <property name="text">
+              <string>导出测试报告</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1400</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>文件(&amp;F)</string>
+    </property>
+    <addaction name="actionExportReport"/>
+    <addaction name="actionExportLog"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuTest">
+    <property name="title">
+     <string>测试(&amp;T)</string>
+    </property>
+    <addaction name="actionSupportTest"/>
+    <addaction name="actionRetractTest"/>
+    <addaction name="separator"/>
+    <addaction name="actionReliabilityTest"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>帮助(&amp;H)</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuTest"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionExportReport">
+   <property name="text">
+    <string>导出测试报告</string>
+   </property>
+  </action>
+  <action name="actionExportLog">
+   <property name="text">
+    <string>导出日志</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>退出</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionSupportTest">
+   <property name="text">
+    <string>支撑测试</string>
+   </property>
+  </action>
+  <action name="actionRetractTest">
+   <property name="text">
+    <string>收回测试</string>
+   </property>
+  </action>
+  <action name="actionReliabilityTest">
+   <property name="text">
+    <string>可靠性测试</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>关于</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

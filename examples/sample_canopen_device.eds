@@ -1,0 +1,353 @@
+; ==============================================
+; 示例 CANopen 设备 EDS 文件
+; 符合 CiA 306 标准
+; 用于测试 EL6751 EDS 加载功能
+; ==============================================
+
+[FileInfo]
+FileName=sample_canopen_device.eds
+FileVersion=1
+FileRevision=0
+EDSVersion=4.0
+Description=Sample CANopen Device for Testing
+CreationTime=12:00PM
+CreationDate=01-01-2024
+CreatedBy=Test
+ModificationTime=12:00PM
+ModificationDate=01-01-2024
+ModifiedBy=Test
+
+[DeviceInfo]
+VendorName=Sample Vendor
+VendorNumber=0x12345678
+ProductName=Sample CANopen Device
+ProductNumber=0x00001234
+RevisionNumber=0x00010000
+OrderCode=SAMPLE-001
+BaudRate_10=1
+BaudRate_20=1
+BaudRate_50=1
+BaudRate_125=1
+BaudRate_250=1
+BaudRate_500=1
+BaudRate_800=1
+BaudRate_1000=1
+SimpleBootUpMaster=0
+SimpleBootUpSlave=1
+Granularity=1
+DynamicChannelsSupported=0
+GroupMessaging=0
+NrOfRXPDO=4
+NrOfTXPDO=4
+LSS_Supported=0
+
+[DummyUsage]
+Dummy0001=0
+Dummy0002=0
+Dummy0003=0
+Dummy0004=0
+Dummy0005=1
+Dummy0006=1
+Dummy0007=1
+
+[Comments]
+Lines=3
+Line1=This is a sample EDS file
+Line2=for testing EL6751 configuration
+Line3=with IgH EtherCAT Master
+
+[MandatoryObjects]
+SupportedObjects=3
+1=0x1000
+2=0x1001
+3=0x1018
+
+[1000]
+ParameterName=Device Type
+ObjectType=0x7
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1001]
+ParameterName=Error Register
+ObjectType=0x7
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x00
+PDOMapping=1
+
+[1018]
+ParameterName=Identity Object
+ObjectType=0x9
+SubNumber=5
+
+[1018sub0]
+ParameterName=Number of Entries
+ObjectType=0x7
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x04
+PDOMapping=0
+
+[1018sub1]
+ParameterName=Vendor ID
+ObjectType=0x7
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x12345678
+PDOMapping=0
+
+[1018sub2]
+ParameterName=Product Code
+ObjectType=0x7
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x00001234
+PDOMapping=0
+
+[1018sub3]
+ParameterName=Revision Number
+ObjectType=0x7
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x00010000
+PDOMapping=0
+
+[1018sub4]
+ParameterName=Serial Number
+ObjectType=0x7
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x00000001
+PDOMapping=0
+
+[OptionalObjects]
+SupportedObjects=8
+1=0x1017
+2=0x1400
+3=0x1600
+4=0x1800
+5=0x1A00
+6=0x6000
+7=0x6200
+8=0x6401
+
+[1017]
+ParameterName=Producer Heartbeat Time
+ObjectType=0x7
+DataType=0x0006
+AccessType=rw
+DefaultValue=0x0000
+PDOMapping=0
+
+; RxPDO Communication Parameter
+[1400]
+ParameterName=Receive PDO 1 Communication Parameter
+ObjectType=0x9
+SubNumber=3
+
+[1400sub0]
+ParameterName=Number of Entries
+ObjectType=0x7
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x02
+PDOMapping=0
+
+[1400sub1]
+ParameterName=COB-ID
+ObjectType=0x7
+DataType=0x0007
+AccessType=rw
+DefaultValue=$NODEID+0x200
+PDOMapping=0
+
+[1400sub2]
+ParameterName=Transmission Type
+ObjectType=0x7
+DataType=0x0005
+AccessType=rw
+DefaultValue=0xFF
+PDOMapping=0
+
+; RxPDO Mapping Parameter
+[1600]
+ParameterName=Receive PDO 1 Mapping Parameter
+ObjectType=0x9
+SubNumber=3
+
+[1600sub0]
+ParameterName=Number of Mapped Objects
+ObjectType=0x7
+DataType=0x0005
+AccessType=rw
+DefaultValue=0x02
+PDOMapping=0
+
+[1600sub1]
+ParameterName=Mapped Object 1
+ObjectType=0x7
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x62000108
+PDOMapping=0
+
+[1600sub2]
+ParameterName=Mapped Object 2
+ObjectType=0x7
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x62000208
+PDOMapping=0
+
+; TxPDO Communication Parameter
+[1800]
+ParameterName=Transmit PDO 1 Communication Parameter
+ObjectType=0x9
+SubNumber=3
+
+[1800sub0]
+ParameterName=Number of Entries
+ObjectType=0x7
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x02
+PDOMapping=0
+
+[1800sub1]
+ParameterName=COB-ID
+ObjectType=0x7
+DataType=0x0007
+AccessType=rw
+DefaultValue=$NODEID+0x180
+PDOMapping=0
+
+[1800sub2]
+ParameterName=Transmission Type
+ObjectType=0x7
+DataType=0x0005
+AccessType=rw
+DefaultValue=0xFF
+PDOMapping=0
+
+; TxPDO Mapping Parameter
+[1A00]
+ParameterName=Transmit PDO 1 Mapping Parameter
+ObjectType=0x9
+SubNumber=3
+
+[1A00sub0]
+ParameterName=Number of Mapped Objects
+ObjectType=0x7
+DataType=0x0005
+AccessType=rw
+DefaultValue=0x02
+PDOMapping=0
+
+[1A00sub1]
+ParameterName=Mapped Object 1
+ObjectType=0x7
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x60000108
+PDOMapping=0
+
+[1A00sub2]
+ParameterName=Mapped Object 2
+ObjectType=0x7
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x60000208
+PDOMapping=0
+
+; Digital Input
+[6000]
+ParameterName=Read Input 8 Bit
+ObjectType=0x8
+SubNumber=3
+
+[6000sub0]
+ParameterName=Number of Entries
+ObjectType=0x7
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x02
+PDOMapping=0
+
+[6000sub1]
+ParameterName=Input 1
+ObjectType=0x7
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x00
+PDOMapping=1
+
+[6000sub2]
+ParameterName=Input 2
+ObjectType=0x7
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x00
+PDOMapping=1
+
+; Digital Output
+[6200]
+ParameterName=Write Output 8 Bit
+ObjectType=0x8
+SubNumber=3
+
+[6200sub0]
+ParameterName=Number of Entries
+ObjectType=0x7
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x02
+PDOMapping=0
+
+[6200sub1]
+ParameterName=Output 1
+ObjectType=0x7
+DataType=0x0005
+AccessType=rw
+DefaultValue=0x00
+PDOMapping=1
+
+[6200sub2]
+ParameterName=Output 2
+ObjectType=0x7
+DataType=0x0005
+AccessType=rw
+DefaultValue=0x00
+PDOMapping=1
+
+; Analog Input
+[6401]
+ParameterName=Read Analog Input 16 Bit
+ObjectType=0x8
+SubNumber=3
+
+[6401sub0]
+ParameterName=Number of Entries
+ObjectType=0x7
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x02
+PDOMapping=0
+
+[6401sub1]
+ParameterName=Analog Input 1
+ObjectType=0x7
+DataType=0x0003
+AccessType=ro
+DefaultValue=0x0000
+PDOMapping=1
+
+[6401sub2]
+ParameterName=Analog Input 2
+ObjectType=0x7
+DataType=0x0003
+AccessType=ro
+DefaultValue=0x0000
+PDOMapping=1

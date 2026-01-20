@@ -1,0 +1,42 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# IDE files
+.idea/
+.vscode/
+*.user
+*.creator.user
+CMakeLists.txt.user
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+
+# Qt generated files
+*_autogen/
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test reports
+reliability_report_*.txt
+ethercat_test_*.log
