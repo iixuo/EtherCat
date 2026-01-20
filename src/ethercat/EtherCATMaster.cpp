@@ -2056,6 +2056,19 @@ void EtherCATMaster::taskThreadFunc() {
 
 // ==================== 缺失的函数实现 ====================
 
+// 添加任务到队列
+void EtherCATMaster::addTask(const std::function<void()>& task) {
+    std::lock_guard<std::mutex> lock(task_mutex);
+    task_queue.push(task);
+    task_cv.notify_one();
+}
+
+// 快捷键监听线程函数（成员函数版本，实际使用全局函数）
+void EtherCATMaster::hotkeyListenerThread() {
+    // 快捷键监听功能由全局函数 hotkeyListener() 实现
+    // 此函数为接口兼容性保留
+}
+
 // 获取测试状态
 TestStatus EtherCATMaster::getTestStatus() const {
     return current_test_status.load();
@@ -2099,18 +2112,16 @@ float EtherCATMaster::readAnalogInputAsCurrent(uint8_t channel) {
         return 0.0f;
     }
     
-    std::lock_guard<std::mutex> lock(domain_mutex);
-    int16_t raw_value = EC_READ_S16(domain_data + el3074_offsets[channel - 1]);
+    int16_t raw_value = readAnalogInputPDO(channel);
     return convertAnalogToCurrent(raw_value);
 }
 
 // 读取所有模拟输入为电流值
 std::vector<float> EtherCATMaster::readAllAnalogInputsAsCurrent() {
     std::vector<float> currents(4);
-    std::lock_guard<std::mutex> lock(domain_mutex);
     
     for (int i = 0; i < 4; i++) {
-        int16_t raw_value = EC_READ_S16(domain_data + el3074_offsets[i]);
+        int16_t raw_value = readAnalogInputPDO(i + 1);
         currents[i] = convertAnalogToCurrent(raw_value);
     }
     
@@ -2120,11 +2131,9 @@ std::vector<float> EtherCATMaster::readAllAnalogInputsAsCurrent() {
 // 读取所有模拟输入为压力值
 std::vector<float> EtherCATMaster::readAllAnalogInputsAsPressure() {
     std::vector<float> pressures(4);
-    std::lock_guard<std::mutex> lock(domain_mutex);
     
     for (int i = 0; i < 4; i++) {
-        int16_t raw_value = EC_READ_S16(domain_data + el3074_offsets[i]);
-        pressures[i] = convertAnalogToPressure(raw_value);
+        pressures[i] = readAnalogInputAsPressure(i + 1);
     }
     
     return pressures;
