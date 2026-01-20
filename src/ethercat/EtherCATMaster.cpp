@@ -1307,9 +1307,9 @@ bool EtherCATMaster::start() {
     // 启动任务处理线程
     // task_thread = std::thread(&EtherCATMaster::taskThreadFunc, this);
     
-    // 等待主站进入运行状态
-    if (!waitForOperational(5000)) {
-        log(LogLevel::LOG_WARNING, "Master", "主站未能进入运行状态，但继续启动...");
+    // 等待主站进入运行状态（减少等待时间，避免阻塞UI）
+    if (!waitForOperational(1000)) {
+        log(LogLevel::LOG_WARNING, "Master", "主站未能立即进入运行状态，继续启动...");
     }
     
     log(LogLevel::LOG_INFO, "Master", "EtherCAT 主站已启动并运行");
@@ -1661,16 +1661,15 @@ void EtherCATMaster::printSlaveStates() {
     std::cout << "================" << std::endl;
 }
 std::vector<bool> EtherCATMaster::readAllDigitalInputs() {
-
     std::vector<bool> states;
     
-    if (!verifyOperation("读取所有数字输入")) {
-        return states; // 返回空向量
+    if (!running || !domain_data) {
+        return states;
     }
-
     
+    // 直接读取PDO数据，不做额外验证（避免阻塞UI）
     for (uint8_t i = 1; i <= 8; i++) {
-        states.push_back(readDigitalInput(i));
+        states.push_back(readDigitalInputPDO(i));
     }
     return states;
 }
@@ -1687,25 +1686,16 @@ bool EtherCATMaster::readDigitalInputPDO(uint8_t channel) {
 }
 
 bool EtherCATMaster::readDigitalInput(uint8_t channel) {
-    if (!verifyOperation("读取数字输入")) {
-        return false;
-    }
     if (channel < 1 || channel > 8) {
-        std::cerr << "错误: 通道号必须在 1-8 范围内" << std::endl;
         return false;
     }
 
-    if (!running) {
-        std::cerr << "错误: 主站未运行" << std::endl;
+    if (!running || !domain_data) {
         return false;
     }
 
-    // 使用PDO读取输入
-    bool state = readDigitalInputPDO(channel);
-    
-    std::cout << "数字输入通道 " << static_cast<int>(channel) << ": " 
-              << (state ? "高电平" : "低电平") << std::endl;
-    return state;
+    // 直接读取PDO数据
+    return readDigitalInputPDO(channel);
 }
 std::vector<float> EtherCATMaster::readAllAnalogInputs() {
     std::vector<float> values;
@@ -2115,10 +2105,16 @@ std::vector<float> EtherCATMaster::readAllAnalogInputsAsCurrent() {
 
 // 读取所有模拟输入为压力值
 std::vector<float> EtherCATMaster::readAllAnalogInputsAsPressure() {
-    std::vector<float> pressures(4);
+    std::vector<float> pressures(4, 0.0f);
+    
+    if (!running || !domain_data) {
+        return pressures;
+    }
     
     for (int i = 0; i < 4; i++) {
-        pressures[i] = readAnalogInputAsPressure(i + 1);
+        int16_t raw_value = readAnalogInputPDO(i + 1);
+        float current_value = convertAnalogToCurrent(raw_value);
+        pressures[i] = convertCurrentToPressure(current_value);
     }
     
     return pressures;

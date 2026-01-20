@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QScrollBar>
+#include <QCoreApplication>
 #include <cmath>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -22,8 +23,11 @@ MainWindow::MainWindow(QWidget *parent)
     // 设置信号槽连接
     setupConnections();
     
-    // 延迟初始化，让窗口先显示
-    QTimer::singleShot(0, this, &MainWindow::initializeSystem);
+    // 确保窗口显示
+    show();
+    
+    // 延迟初始化，让窗口先完全显示（500ms）
+    QTimer::singleShot(500, this, &MainWindow::initializeSystem);
 }
 
 MainWindow::~MainWindow()
@@ -46,6 +50,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::initializeSystem()
 {
+    // 强制处理所有待处理的事件，确保 UI 完全显示
+    QCoreApplication::processEvents();
+    
     systemUptime.start();
     
 #if USE_REAL_ETHERCAT
