@@ -54,26 +54,11 @@ set(APP_SOURCES
     src/gui/mainwindow.ui
 )
 
-# 在 Linux + WITH_IGH_ETHERCAT 时包含真正的 EtherCAT 代码
-if(WITH_IGH_ETHERCAT AND UNIX AND NOT APPLE)
-    message(STATUS "Linux detected - Building with EtherCAT hardware support")
-    set(EC_SOURCES
-        src/ethercat/EtherCATMaster.cpp
-    )
-else()
-    if(WIN32)
-        message(STATUS "Windows detected - Building in SIMULATION mode (no EtherCAT hardware)")
-    elseif(APPLE)
-        message(STATUS "macOS detected - Building in SIMULATION mode (no EtherCAT hardware)")
-    else()
-        message(STATUS "Building in SIMULATION mode (WITH_IGH_ETHERCAT=OFF)")
-    endif()
-    set(EC_SOURCES "")
-endif()
+# EtherCAT 源文件（稍后根据库是否找到决定）
+set(EC_SOURCES "")
 
 add_executable(${PROJECT_NAME}
     ${APP_SOURCES}
-    ${EC_SOURCES}
 )
 
 # include 目录
@@ -101,7 +86,7 @@ endif()
 # -----------------------------
 # IgH EtherCAT Master (ecrt)
 # -----------------------------
-if(WITH_IGH_ETHERCAT)
+if(WITH_IGH_ETHERCAT AND UNIX AND NOT APPLE)
     # 常见安装位置：/opt/etherlab（IgH推荐）、/usr/local、/usr
     find_path(ETHERCAT_INCLUDE_DIR
         NAMES ecrt.h
@@ -130,17 +115,29 @@ if(WITH_IGH_ETHERCAT)
         )
         set(WITH_IGH_ETHERCAT OFF)
         target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_IGH_ETHERCAT=0)
+        message(STATUS "Building in SIMULATION mode (IgH EtherCAT not found)")
     else()
         message(STATUS "Found IgH EtherCAT:")
         message(STATUS "  Include: ${ETHERCAT_INCLUDE_DIR}")
         message(STATUS "  Library: ${ETHERCAT_LIBRARY}")
         
+        # 添加 EtherCATMaster.cpp 源文件
+        target_sources(${PROJECT_NAME} PRIVATE src/ethercat/EtherCATMaster.cpp)
+        
         target_include_directories(${PROJECT_NAME} PRIVATE ${ETHERCAT_INCLUDE_DIR})
         target_link_libraries(${PROJECT_NAME} PRIVATE ${ETHERCAT_LIBRARY})
         target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_IGH_ETHERCAT=1)
+        message(STATUS "Building with EtherCAT hardware support")
     endif()
 else()
     target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_IGH_ETHERCAT=0)
+    if(WIN32)
+        message(STATUS "Windows detected - Building in SIMULATION mode")
+    elseif(APPLE)
+        message(STATUS "macOS detected - Building in SIMULATION mode")
+    else()
+        message(STATUS "Building in SIMULATION mode (WITH_IGH_ETHERCAT=OFF)")
+    endif()
 endif()
 
 # -----------------------------
