@@ -2053,4 +2053,261 @@ void EtherCATMaster::taskThreadFunc() {
     
     log(LogLevel::LOG_INFO, "Master", "任务线程退出");
 }
-// ... 其他原有函数的实现（使用新的log函数进行日志记录）...
+
+// ==================== 缺失的函数实现 ====================
+
+// 获取测试状态
+TestStatus EtherCATMaster::getTestStatus() const {
+    return current_test_status.load();
+}
+
+// 设置压力数据回调
+void EtherCATMaster::setPressureDataCallback(PressureDataCallback callback) {
+    pressure_callback = callback;
+}
+
+// 异步设置继电器通道
+void EtherCATMaster::setRelayChannelAsync(uint8_t channel, bool state, 
+                                          std::function<void(bool)> callback) {
+    std::lock_guard<std::mutex> lock(task_mutex);
+    task_queue.push([this, channel, state, callback]() {
+        bool result = setRelayChannel(channel, state);
+        if (callback) {
+            callback(result);
+        }
+    });
+    task_cv.notify_one();
+}
+
+// 异步设置所有继电器
+void EtherCATMaster::setAllRelaysAsync(bool state, 
+                                       std::function<void(bool)> callback) {
+    std::lock_guard<std::mutex> lock(task_mutex);
+    task_queue.push([this, state, callback]() {
+        bool result = setAllRelays(state);
+        if (callback) {
+            callback(result);
+        }
+    });
+    task_cv.notify_one();
+}
+
+// 读取模拟输入为电流值 (mA)
+float EtherCATMaster::readAnalogInputAsCurrent(uint8_t channel) {
+    if (channel < 1 || channel > 4) {
+        log(LogLevel::LOG_ERROR, "Analog", "无效的模拟通道: " + std::to_string(channel));
+        return 0.0f;
+    }
+    
+    std::lock_guard<std::mutex> lock(domain_mutex);
+    int16_t raw_value = EC_READ_S16(domain_data + el3074_offsets[channel - 1]);
+    return convertAnalogToCurrent(raw_value);
+}
+
+// 读取所有模拟输入为电流值
+std::vector<float> EtherCATMaster::readAllAnalogInputsAsCurrent() {
+    std::vector<float> currents(4);
+    std::lock_guard<std::mutex> lock(domain_mutex);
+    
+    for (int i = 0; i < 4; i++) {
+        int16_t raw_value = EC_READ_S16(domain_data + el3074_offsets[i]);
+        currents[i] = convertAnalogToCurrent(raw_value);
+    }
+    
+    return currents;
+}
+
+// 读取所有模拟输入为压力值
+std::vector<float> EtherCATMaster::readAllAnalogInputsAsPressure() {
+    std::vector<float> pressures(4);
+    std::lock_guard<std::mutex> lock(domain_mutex);
+    
+    for (int i = 0; i < 4; i++) {
+        int16_t raw_value = EC_READ_S16(domain_data + el3074_offsets[i]);
+        pressures[i] = convertAnalogToPressure(raw_value);
+    }
+    
+    return pressures;
+}
+
+// 异步读取模拟输入
+void EtherCATMaster::readAnalogInputAsync(uint8_t channel, 
+                                          std::function<void(float, const std::string&)> callback) {
+    std::lock_guard<std::mutex> lock(task_mutex);
+    task_queue.push([this, channel, callback]() {
+        float pressure = readAnalogInputAsPressure(channel);
+        PressureStatus status = checkPressureStatus(channel);
+        std::string status_str = getPressureStatusString(status);
+        if (callback) {
+            callback(pressure, status_str);
+        }
+    });
+    task_cv.notify_one();
+}
+
+// 异步读取所有模拟输入
+void EtherCATMaster::readAllAnalogInputsAsync(
+    std::function<void(const std::vector<float>&, 
+                      const std::vector<std::string>&)> callback) {
+    std::lock_guard<std::mutex> lock(task_mutex);
+    task_queue.push([this, callback]() {
+        std::vector<float> pressures = readAllAnalogInputsAsPressure();
+        std::vector<std::string> statuses(4);
+        for (int i = 0; i < 4; i++) {
+            PressureStatus status = checkPressureStatus(i + 1);
+            statuses[i] = getPressureStatusString(status);
+        }
+        if (callback) {
+            callback(pressures, statuses);
+        }
+    });
+    task_cv.notify_one();
+}
+
+// 支撑测试异步执行
+void EtherCATMaster::startSupportTestAsync(float target_pressure, 
+                                           int timeout_ms,
+                                           TestProgressCallback progress_callback,
+                                           std::function<void(const TestResult&)> completion_callback) {
+    std::lock_guard<std::mutex> lock(task_mutex);
+    task_queue.push([this, target_pressure, timeout_ms, progress_callback, completion_callback]() {
+        TestResult result;
+        result.status = TestStatus::TEST_RUNNING;
+        current_test_status = TestStatus::TEST_RUNNING;
+        
+        log(LogLevel::LOG_INFO, "Test", "开始支撑测试，目标压力: " + std::to_string(target_pressure) + " bar");
+        
+        // 打开继电器1，关闭继电器2
+        setRelayChannel(1, true);
+        setRelayChannel(2, false);
+        
+        auto start_time = std::chrono::steady_clock::now();
+        bool success = false;
+        
+        while (!test_cancelled) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - start_time).count();
+            
+            if (elapsed > timeout_ms) {
+                log(LogLevel::LOG_WARNING, "Test", "支撑测试超时");
+                break;
+            }
+            
+            // 检查压力
+            std::vector<float> pressures = readAllAnalogInputsAsPressure();
+            bool all_reached = true;
+            for (float p : pressures) {
+                if (p < target_pressure) {
+                    all_reached = false;
+                    break;
+                }
+            }
+            
+            if (all_reached) {
+                success = true;
+                log(LogLevel::LOG_INFO, "Test", "支撑测试成功，耗时: " + std::to_string(elapsed) + " ms");
+                break;
+            }
+            
+            // 报告进度
+            if (progress_callback) {
+                result.final_pressures = pressures;
+                result.elapsed_time_ms = static_cast<int>(elapsed);
+                progress_callback(result);
+            }
+            
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        
+        // 完成
+        result.success = success;
+        result.status = success ? TestStatus::TEST_COMPLETED : TestStatus::TEST_FAILED;
+        result.final_pressures = readAllAnalogInputsAsPressure();
+        result.elapsed_time_ms = static_cast<int>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - start_time).count());
+        result.message = success ? "支撑测试成功" : "支撑测试失败";
+        
+        current_test_status = result.status;
+        test_cancelled = false;
+        
+        if (completion_callback) {
+            completion_callback(result);
+        }
+    });
+    task_cv.notify_one();
+}
+
+// 收回测试异步执行
+void EtherCATMaster::startRetractTestAsync(float target_pressure,
+                                           int timeout_ms,
+                                           TestProgressCallback progress_callback,
+                                           std::function<void(const TestResult&)> completion_callback) {
+    std::lock_guard<std::mutex> lock(task_mutex);
+    task_queue.push([this, target_pressure, timeout_ms, progress_callback, completion_callback]() {
+        TestResult result;
+        result.status = TestStatus::TEST_RUNNING;
+        current_test_status = TestStatus::TEST_RUNNING;
+        
+        log(LogLevel::LOG_INFO, "Test", "开始收回测试，目标压力: " + std::to_string(target_pressure) + " bar");
+        
+        // 关闭继电器1，打开继电器2
+        setRelayChannel(1, false);
+        setRelayChannel(2, true);
+        
+        auto start_time = std::chrono::steady_clock::now();
+        bool success = false;
+        
+        while (!test_cancelled) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - start_time).count();
+            
+            if (elapsed > timeout_ms) {
+                log(LogLevel::LOG_WARNING, "Test", "收回测试超时");
+                break;
+            }
+            
+            // 检查压力
+            std::vector<float> pressures = readAllAnalogInputsAsPressure();
+            bool all_reached = true;
+            for (float p : pressures) {
+                if (p > target_pressure) {
+                    all_reached = false;
+                    break;
+                }
+            }
+            
+            if (all_reached) {
+                success = true;
+                log(LogLevel::LOG_INFO, "Test", "收回测试成功，耗时: " + std::to_string(elapsed) + " ms");
+                break;
+            }
+            
+            // 报告进度
+            if (progress_callback) {
+                result.final_pressures = pressures;
+                result.elapsed_time_ms = static_cast<int>(elapsed);
+                progress_callback(result);
+            }
+            
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        
+        // 完成
+        result.success = success;
+        result.status = success ? TestStatus::TEST_COMPLETED : TestStatus::TEST_FAILED;
+        result.final_pressures = readAllAnalogInputsAsPressure();
+        result.elapsed_time_ms = static_cast<int>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - start_time).count());
+        result.message = success ? "收回测试成功" : "收回测试失败";
+        
+        current_test_status = result.status;
+        test_cancelled = false;
+        
+        if (completion_callback) {
+            completion_callback(result);
+        }
+    });
+    task_cv.notify_one();
+}
