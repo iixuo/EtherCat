@@ -1347,13 +1347,17 @@ bool EtherCATMaster::start() {
     }
     
     log(LogLevel::LOG_INFO, "Master", "EtherCAT 主站已启动并运行");
+    std::cout << "[Master] 日志输出完成，准备设置日志文件..." << std::endl;
+    std::cout.flush();
     
-    // 自动设置日志文件
-    if (!log_to_file) {
-        std::string default_log = "ethercat_test_" + generateTimestamp() + ".log";
-        setLogFile(default_log);
-    }
+    // 跳过自动设置日志文件，直接返回
+    // if (!log_to_file) {
+    //     std::string default_log = "ethercat_test_" + generateTimestamp() + ".log";
+    //     setLogFile(default_log);
+    // }
     
+    std::cout << "[Master] start() 返回 true" << std::endl;
+    std::cout.flush();
     return true;
 }
 
