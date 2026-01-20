@@ -240,10 +240,12 @@ bool EtherCATMaster::checkMasterHealth() {
         return false;
     }
     
-    // 检查从站响应数量
-    if (ms.slaves_responding != 3) { // 期望3个从站
-        std::cerr << "警告: 从站响应数量异常，期望3个，实际" << ms.slaves_responding << "个" << std::endl;
+    // 检查从站响应数量 (实际配置: EK1100, EL1008, EL3074, EL2634, EL6001, EL6751 = 6个)
+    if (ms.slaves_responding != 6) {
+        std::cerr << "警告: 从站响应数量异常，期望6个，实际" << ms.slaves_responding << "个" << std::endl;
         current_status = MasterStatus::STATUS_WARNING;
+    } else {
+        std::cout << "从站响应正常: " << ms.slaves_responding << "个" << std::endl;
     }
     
     // 检查应用层状态
@@ -1089,6 +1091,16 @@ TestResult EtherCATMaster::executeRetractTest(float target_pressure, int timeout
 bool EtherCATMaster::configureSlaves() {
     std::cout << "配置从站和PDO映射..." << std::endl;
     
+    // 配置 EK1100 (Slave 0) - 耦合器 (无PDO)
+    std::cout << "配置 EK1100 耦合器 (位置 0)..." << std::endl;
+    auto config0 = ecrt_master_slave_config(master, 0, 0, EK1100_VENDOR_ID, EK1100_PRODUCT_CODE);
+    if (!config0) {
+        std::cerr << "错误: 无法配置 EK1100 耦合器 (位置 0)" << std::endl;
+        return false;
+    }
+    slave_configs.push_back(config0);
+    std::cout << "EK1100 配置成功" << std::endl;
+    
     // 配置 EL1008 (Slave 1) - 数字输入
     std::cout << "配置 EL1008 从站 (位置 1)..." << std::endl;
     auto config1 = ecrt_master_slave_config(master, 0, 1, EL1008_VENDOR_ID, EL1008_PRODUCT_CODE);
@@ -1236,6 +1248,28 @@ bool EtherCATMaster::configureSlaves() {
         return false;
     }
     std::cout << "EL2634 配置成功" << std::endl;
+    
+    // 配置 EL6001 (Slave 4) - RS232接口 (无PDO)
+    std::cout << "配置 EL6001 RS232接口 (位置 4)..." << std::endl;
+    auto config4 = ecrt_master_slave_config(master, 0, 4, EL6001_VENDOR_ID, EL6001_PRODUCT_CODE);
+    if (!config4) {
+        std::cerr << "警告: 无法配置 EL6001 从站 (位置 4)，继续..." << std::endl;
+        // 不返回 false，因为这不是关键从站
+    } else {
+        slave_configs.push_back(config4);
+        std::cout << "EL6001 配置成功" << std::endl;
+    }
+    
+    // 配置 EL6751 (Slave 5) - CANopen主站 (无PDO)
+    std::cout << "配置 EL6751 CANopen主站 (位置 5)..." << std::endl;
+    auto config5 = ecrt_master_slave_config(master, 0, 5, EL6751_VENDOR_ID, EL6751_PRODUCT_CODE);
+    if (!config5) {
+        std::cerr << "警告: 无法配置 EL6751 从站 (位置 5)，继续..." << std::endl;
+        // 不返回 false，因为这不是关键从站
+    } else {
+        slave_configs.push_back(config5);
+        std::cout << "EL6751 配置成功" << std::endl;
+    }
 
     // 注册PDO条目到域
     std::cout << "注册PDO条目到域..." << std::endl;

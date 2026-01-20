@@ -35,14 +35,29 @@ struct ec_domain_state_t {
 #include <deque>
 
 // 从站配置
+// EK1100 耦合器 (位置 0)
+constexpr uint16_t EK1100_VENDOR_ID = 0x00000002;
+constexpr uint32_t EK1100_PRODUCT_CODE = 0x044c2c52;
+
+// EL1008 数字输入 (位置 1)
 constexpr uint16_t EL1008_VENDOR_ID = 0x00000002;
 constexpr uint32_t EL1008_PRODUCT_CODE = 0x03f03052;
 
+// EL3074 模拟输入 (位置 2)
 constexpr uint16_t EL3074_VENDOR_ID = 0x00000002;
 constexpr uint32_t EL3074_PRODUCT_CODE = 0x0c023052;
 
+// EL2634 继电器输出 (位置 3)
 constexpr uint16_t EL2634_VENDOR_ID = 0x00000002;
 constexpr uint32_t EL2634_PRODUCT_CODE = 0x0a4a3052;
+
+// EL6001 RS232接口 (位置 4) - 不需要PDO配置
+constexpr uint16_t EL6001_VENDOR_ID = 0x00000002;
+constexpr uint32_t EL6001_PRODUCT_CODE = 0x17713052;
+
+// EL6751 CANopen主站 (位置 5) - 不需要PDO配置
+constexpr uint16_t EL6751_VENDOR_ID = 0x00000002;
+constexpr uint32_t EL6751_PRODUCT_CODE = 0x1a5f3052;
 
 // 添加压力传感器相关常量
 constexpr float PRESSURE_RANGE_MIN = 0.0f;      // 最小压力 0 bar
