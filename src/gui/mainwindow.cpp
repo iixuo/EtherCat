@@ -8,6 +8,7 @@
 #include <QScrollBar>
 #include <QCoreApplication>
 #include <QDebug>
+#include <iostream>
 #include <cmath>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -405,25 +406,37 @@ void MainWindow::onUpdateTimer()
 {
     // 调试：每秒打印一次状态
     static int timerCounter = 0;
-    if (timerCounter++ % 10 == 0) {
-        qDebug() << "定时器触发 #" << timerCounter 
-                 << " master=" << (master ? "有效" : "空") 
-                 << " masterRunning=" << masterRunning;
+    timerCounter++;
+    if (timerCounter % 10 == 0) {
+        std::cout << "[UI] 定时器 #" << timerCounter 
+                  << " master=" << (master ? "有效" : "空") 
+                  << " masterRunning=" << masterRunning << std::endl;
     }
     
     // 从真实硬件读取压力
     if (master && masterRunning) {
-        // 读取电流值用于调试
+        // 每5秒打印一次详细调试信息
         static int debugCounter = 0;
-        if (debugCounter++ % 50 == 0) { // 每5秒打印一次调试信息
-            qDebug() << "===== 读取传感器数据 =====";
+        debugCounter++;
+        if (debugCounter % 50 == 0) {
+            std::cout << "===== [UI] 读取传感器数据 =====" << std::endl;
             auto currents = master->readAllAnalogInputsAsCurrent();
             for (size_t i = 0; i < currents.size(); i++) {
-                qDebug() << "通道" << (i+1) << "电流:" << currents[i] << "mA";
+                std::cout << "  通道 " << (i+1) << " 电流: " << currents[i] << " mA" << std::endl;
             }
         }
         
         auto pressures = master->readAllAnalogInputsAsPressure();
+        
+        // 每秒打印一次压力值
+        if (timerCounter % 10 == 0) {
+            std::cout << "[UI] 压力值: ";
+            for (size_t i = 0; i < pressures.size(); i++) {
+                std::cout << "P" << (i+1) << "=" << pressures[i] << "bar ";
+            }
+            std::cout << std::endl;
+        }
+        
         for (size_t i = 0; i < pressures.size() && i < 4; i++) {
             auto status = master->checkPressureStatus(i + 1);
             QString statusStr = QString::fromStdString(master->getPressureStatusString(status));
@@ -433,6 +446,11 @@ void MainWindow::onUpdateTimer()
         auto digitalInputs = master->readAllDigitalInputs();
         for (size_t i = 0; i < digitalInputs.size() && i < 8; i++) {
             updateDigitalInputDisplay(i + 1, digitalInputs[i]);
+        }
+    } else {
+        if (timerCounter % 10 == 0) {
+            std::cout << "[UI] 跳过读取: master=" << (master ? "有效" : "空") 
+                      << " masterRunning=" << masterRunning << std::endl;
         }
     }
     
