@@ -15,9 +15,6 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
     , updateTimer(new QTimer(this))
     , reliabilityTestTimer(new QTimer(this))
-#if !USE_REAL_ETHERCAT
-    , rng(std::random_device{}())
-#endif
 {
     ui->setupUi(this);
     
@@ -40,11 +37,9 @@ MainWindow::~MainWindow()
         reliabilityTestTimer->stop();
     }
     
-#if USE_REAL_ETHERCAT
     if (master && masterRunning) {
         master->stop();
     }
-#endif
     
     delete ui;
 }
@@ -56,8 +51,6 @@ void MainWindow::initializeSystem()
     
     systemUptime.start();
     
-#if USE_REAL_ETHERCAT
-    // ========== 真实EtherCAT模式 ==========
     appendLog("正在初始化 EtherCAT 主站...", "INFO");
     
     master = std::make_unique<EtherCATMaster>();
@@ -91,20 +84,6 @@ void MainWindow::initializeSystem()
         ui->lblSystemStatus->setText("● 初始化失败");
         ui->lblSystemStatus->setStyleSheet("color: #333333; font-weight: bold; font-size: 16px;");
     }
-#else
-    // ========== 模拟模式 ==========
-    appendLog("系统已启动（模拟模式）", "INFO");
-    appendLog("注意: 当前为模拟模式，未连接真实硬件", "WARNING");
-    
-    // 初始化模拟压力值
-    for (int i = 0; i < 4; i++) {
-        simulatedPressures[i] = 0.5f + (rng() % 100) / 100.0f;
-    }
-    
-    ui->lblSystemStatus->setText("● 运行中（模拟）");
-    ui->lblSystemStatus->setStyleSheet("color: #2563eb; font-weight: bold; font-size: 16px;");
-    setControlsEnabled(true);
-#endif
     
     ui->btnStopReliability->setEnabled(false);
     
@@ -149,52 +128,36 @@ void MainWindow::setupConnections()
 // ==================== 继电器控制 ====================
 void MainWindow::onRelay1Toggled(bool checked)
 {
-#if USE_REAL_ETHERCAT
     if (master && masterRunning) {
         master->setRelayChannel(1, checked);
     }
-#else
-    relayStates[0] = checked;
-#endif
     QString state = checked ? "开启" : "关闭";
     appendLog(QString("继电器通道1 (支撑) %1").arg(state), "INFO");
 }
 
 void MainWindow::onRelay2Toggled(bool checked)
 {
-#if USE_REAL_ETHERCAT
     if (master && masterRunning) {
         master->setRelayChannel(2, checked);
     }
-#else
-    relayStates[1] = checked;
-#endif
     QString state = checked ? "开启" : "关闭";
     appendLog(QString("继电器通道2 (收回) %1").arg(state), "INFO");
 }
 
 void MainWindow::onRelay3Toggled(bool checked)
 {
-#if USE_REAL_ETHERCAT
     if (master && masterRunning) {
         master->setRelayChannel(3, checked);
     }
-#else
-    relayStates[2] = checked;
-#endif
     QString state = checked ? "开启" : "关闭";
     appendLog(QString("继电器通道3 %1").arg(state), "INFO");
 }
 
 void MainWindow::onRelay4Toggled(bool checked)
 {
-#if USE_REAL_ETHERCAT
     if (master && masterRunning) {
         master->setRelayChannel(4, checked);
     }
-#else
-    relayStates[3] = checked;
-#endif
     QString state = checked ? "开启" : "关闭";
     appendLog(QString("继电器通道4 %1").arg(state), "INFO");
 }
@@ -206,22 +169,15 @@ void MainWindow::onAllRelaysOff()
     ui->btnRelay3->setChecked(false);
     ui->btnRelay4->setChecked(false);
     
-#if USE_REAL_ETHERCAT
     if (master && masterRunning) {
         master->setAllRelays(false);
     }
-#else
-    for (int i = 0; i < 4; i++) {
-        relayStates[i] = false;
-    }
-#endif
     appendLog("所有继电器已关闭", "WARNING");
 }
 
 // ==================== 测试控制 ====================
 void MainWindow::onSupportTest()
 {
-#if USE_REAL_ETHERCAT
     if (!master || !masterRunning) {
         QMessageBox::warning(this, "警告", "EtherCAT主站未运行");
         return;
@@ -230,12 +186,6 @@ void MainWindow::onSupportTest()
         QMessageBox::warning(this, "警告", "可靠性测试正在运行，请先停止");
         return;
     }
-#else
-    if (reliabilityTestRunning) {
-        QMessageBox::warning(this, "警告", "可靠性测试正在运行，请先停止");
-        return;
-    }
-#endif
     
     supportTargetPressure = ui->spinSupportTarget->value();
     supportTimeoutMs = ui->spinSupportTimeout->value() * 1000;
@@ -246,7 +196,6 @@ void MainWindow::onSupportTest()
     ui->lblTestStatus->setText("测试状态: 支撑测试进行中...");
     ui->lblTestStatus->setStyleSheet("background-color: #f3f4f6; padding: 10px; border-radius: 4px; font-size: 14px; color: #2563eb; border: 1px solid #e5e7eb;");
     
-#if USE_REAL_ETHERCAT
     master->startSupportTestAsync(supportTargetPressure, supportTimeoutMs, nullptr,
         [this](const TestResult& result) {
             QMetaObject::invokeMethod(this, [this, result]() {
@@ -260,36 +209,10 @@ void MainWindow::onSupportTest()
                 ui->lblTestStatus->setStyleSheet("background-color: #f3f4f6; padding: 10px; border-radius: 4px; font-size: 14px; color: #333333; border: 1px solid #e5e7eb;");
             }, Qt::QueuedConnection);
         });
-#else
-    // 模拟模式 - 开启支撑继电器
-    ui->btnRelay1->setChecked(true);
-    ui->btnRelay2->setChecked(false);
-    
-    currentPhase = TestPhase::SUPPORT;
-    phaseTimer.start();
-    
-    QTimer::singleShot(supportTimeoutMs, this, [this]() {
-        if (currentPhase == TestPhase::SUPPORT) {
-            bool success = checkPressureTarget(supportTargetPressure, true);
-            ui->btnRelay1->setChecked(false);
-            currentPhase = TestPhase::IDLE;
-            
-            if (success) {
-                appendLog("支撑测试成功", "INFO");
-                ui->lblTestStatus->setText("测试状态: 支撑测试成功");
-            } else {
-                appendLog("支撑测试失败", "ERROR");
-                ui->lblTestStatus->setText("测试状态: 支撑测试失败");
-            }
-            ui->lblTestStatus->setStyleSheet("background-color: #f3f4f6; padding: 10px; border-radius: 4px; font-size: 14px; color: #333333; border: 1px solid #e5e7eb;");
-        }
-    });
-#endif
 }
 
 void MainWindow::onRetractTest()
 {
-#if USE_REAL_ETHERCAT
     if (!master || !masterRunning) {
         QMessageBox::warning(this, "警告", "EtherCAT主站未运行");
         return;
@@ -298,12 +221,6 @@ void MainWindow::onRetractTest()
         QMessageBox::warning(this, "警告", "可靠性测试正在运行，请先停止");
         return;
     }
-#else
-    if (reliabilityTestRunning) {
-        QMessageBox::warning(this, "警告", "可靠性测试正在运行，请先停止");
-        return;
-    }
-#endif
     
     retractTargetPressure = ui->spinRetractTarget->value();
     retractTimeoutMs = ui->spinRetractTimeout->value() * 1000;
@@ -314,7 +231,6 @@ void MainWindow::onRetractTest()
     ui->lblTestStatus->setText("测试状态: 收回测试进行中...");
     ui->lblTestStatus->setStyleSheet("background-color: #f3f4f6; padding: 10px; border-radius: 4px; font-size: 14px; color: #2563eb; border: 1px solid #e5e7eb;");
     
-#if USE_REAL_ETHERCAT
     master->startRetractTestAsync(retractTargetPressure, retractTimeoutMs, nullptr,
         [this](const TestResult& result) {
             QMetaObject::invokeMethod(this, [this, result]() {
@@ -328,36 +244,10 @@ void MainWindow::onRetractTest()
                 ui->lblTestStatus->setStyleSheet("background-color: #f3f4f6; padding: 10px; border-radius: 4px; font-size: 14px; color: #333333; border: 1px solid #e5e7eb;");
             }, Qt::QueuedConnection);
         });
-#else
-    // 模拟模式
-    ui->btnRelay1->setChecked(false);
-    ui->btnRelay2->setChecked(true);
-    
-    currentPhase = TestPhase::RETRACT;
-    phaseTimer.start();
-    
-    QTimer::singleShot(retractTimeoutMs, this, [this]() {
-        if (currentPhase == TestPhase::RETRACT) {
-            bool success = checkPressureTarget(retractTargetPressure, false);
-            ui->btnRelay2->setChecked(false);
-            currentPhase = TestPhase::IDLE;
-            
-            if (success) {
-                appendLog("收回测试成功", "INFO");
-                ui->lblTestStatus->setText("测试状态: 收回测试成功");
-            } else {
-                appendLog("收回测试失败", "ERROR");
-                ui->lblTestStatus->setText("测试状态: 收回测试失败");
-            }
-            ui->lblTestStatus->setStyleSheet("background-color: #f3f4f6; padding: 10px; border-radius: 4px; font-size: 14px; color: #333333; border: 1px solid #e5e7eb;");
-        }
-    });
-#endif
 }
 
 void MainWindow::onStartReliabilityTest()
 {
-#if USE_REAL_ETHERCAT
     if (!master || !masterRunning) {
         QMessageBox::warning(this, "警告", "EtherCAT主站未运行");
         return;
@@ -365,11 +255,6 @@ void MainWindow::onStartReliabilityTest()
     if (master->isReliabilityTestRunning()) {
         return;
     }
-#else
-    if (reliabilityTestRunning) {
-        return;
-    }
-#endif
     
     supportTargetPressure = ui->spinSupportTarget->value();
     retractTargetPressure = ui->spinRetractTarget->value();
@@ -392,8 +277,6 @@ void MainWindow::onStartReliabilityTest()
     ui->btnSupportTest->setEnabled(false);
     ui->btnRetractTest->setEnabled(false);
     
-#if USE_REAL_ETHERCAT
-    // 真实EtherCAT模式 - 调用EtherCATMaster的可靠性测试
     master->startInfiniteReliabilityTestAsync(
         supportTargetPressure,
         retractTargetPressure,
@@ -411,32 +294,13 @@ void MainWindow::onStartReliabilityTest()
             }, Qt::QueuedConnection);
         }
     );
-#else
-    // 模拟模式
-    reliabilityTestRunning = true;
-    stats = TestStats();
-    startSupportPhase();
-    reliabilityTestTimer->start(100);
-#endif
 }
 
 void MainWindow::onStopReliabilityTest()
 {
-#if USE_REAL_ETHERCAT
     if (master && master->isReliabilityTestRunning()) {
         master->stopReliabilityTest(true);  // 生成报告
     }
-#else
-    if (!reliabilityTestRunning) {
-        return;
-    }
-    reliabilityTestRunning = false;
-    reliabilityTestTimer->stop();
-    currentPhase = TestPhase::IDLE;
-    
-    ui->btnRelay1->setChecked(false);
-    ui->btnRelay2->setChecked(false);
-#endif
     
     appendLog("========================================", "WARNING");
     appendLog("可靠性测试已停止", "WARNING");
@@ -451,7 +315,6 @@ void MainWindow::onStopReliabilityTest()
     ui->btnRetractTest->setEnabled(true);
 }
 
-#if USE_REAL_ETHERCAT
 void MainWindow::onReliabilityProgress(const ReliabilityTestStats& ethercatStats)
 {
     // 更新统计显示
@@ -475,152 +338,10 @@ void MainWindow::onLogReceived(const LogEntry& log)
     }
     appendLog(QString::fromStdString(log.message), level);
 }
-#else
-// ==================== 模拟模式函数 ====================
-void MainWindow::startSupportPhase()
-{
-    currentPhase = TestPhase::SUPPORT;
-    phaseTimer.start();
-    ui->btnRelay1->setChecked(true);
-    ui->btnRelay2->setChecked(false);
-    appendLog(QString("周期 %1: 开始支撑阶段").arg(stats.totalCycles + 1), "INFO");
-}
-
-void MainWindow::startRetractPhase()
-{
-    currentPhase = TestPhase::RETRACT;
-    phaseTimer.start();
-    ui->btnRelay1->setChecked(false);
-    ui->btnRelay2->setChecked(true);
-    appendLog(QString("周期 %1: 开始收回阶段").arg(stats.totalCycles + 1), "INFO");
-}
-
-void MainWindow::completeCycle(bool supportSuccess, bool retractSuccess, int supportTime, int retractTime)
-{
-    stats.totalCycles++;
-    
-    if (supportSuccess) {
-        stats.supportSuccess++;
-        stats.totalSupportTime += supportTime;
-    } else {
-        stats.supportFail++;
-    }
-    
-    if (retractSuccess) {
-        stats.retractSuccess++;
-        stats.totalRetractTime += retractTime;
-    } else {
-        stats.retractFail++;
-    }
-    
-    if (stats.supportSuccess > 0) {
-        stats.avgSupportTime = static_cast<float>(stats.totalSupportTime) / stats.supportSuccess;
-    }
-    if (stats.retractSuccess > 0) {
-        stats.avgRetractTime = static_cast<float>(stats.totalRetractTime) / stats.retractSuccess;
-    }
-    
-    QString result = (supportSuccess && retractSuccess) ? "成功" : "失败";
-    QString level = (supportSuccess && retractSuccess) ? "INFO" : "WARNING";
-    appendLog(QString("周期 %1 完成: %2").arg(stats.totalCycles).arg(result), level);
-    
-    updateTestStats();
-}
-
-bool MainWindow::checkPressureTarget(float target, bool above)
-{
-    for (int i = 0; i < 4; i++) {
-        if (above) {
-            if (simulatedPressures[i] < target) return false;
-        } else {
-            if (simulatedPressures[i] >= target) return false;
-        }
-    }
-    return true;
-}
-
-void MainWindow::executeTestPhase()
-{
-    static bool supportSuccess = false;
-    static int supportTime = 0;
-    
-    int elapsed = phaseTimer.elapsed();
-    
-    switch (currentPhase) {
-        case TestPhase::SUPPORT:
-            if (checkPressureTarget(supportTargetPressure, true)) {
-                supportSuccess = true;
-                supportTime = elapsed;
-                currentPhase = TestPhase::SUPPORT_WAIT;
-                phaseTimer.start();
-            } else if (elapsed >= supportTimeoutMs) {
-                supportSuccess = false;
-                supportTime = elapsed;
-                currentPhase = TestPhase::SUPPORT_WAIT;
-                phaseTimer.start();
-            }
-            break;
-            
-        case TestPhase::SUPPORT_WAIT:
-            if (elapsed >= 500) {
-                ui->btnRelay1->setChecked(false);
-                startRetractPhase();
-            }
-            break;
-            
-        case TestPhase::RETRACT:
-            if (checkPressureTarget(retractTargetPressure, false)) {
-                completeCycle(supportSuccess, true, supportTime, elapsed);
-                currentPhase = TestPhase::RETRACT_WAIT;
-                phaseTimer.start();
-            } else if (elapsed >= retractTimeoutMs) {
-                completeCycle(supportSuccess, false, supportTime, elapsed);
-                currentPhase = TestPhase::RETRACT_WAIT;
-                phaseTimer.start();
-            }
-            break;
-            
-        case TestPhase::RETRACT_WAIT:
-            if (elapsed >= 1000) {
-                ui->btnRelay2->setChecked(false);
-                startSupportPhase();
-            }
-            break;
-            
-        default:
-            break;
-    }
-}
-
-void MainWindow::simulatePressureChanges()
-{
-    float targetPressure = 0.5f;
-    float changeRate = 0.5f;
-    
-    if (relayStates[0]) {
-        targetPressure = supportTargetPressure + 2.0f + (rng() % 30) / 10.0f;
-        changeRate = 2.0f;
-    } else if (relayStates[1]) {
-        targetPressure = 0.3f + (rng() % 5) / 10.0f;
-        changeRate = 1.5f;
-    }
-    
-    for (int i = 0; i < 4; i++) {
-        float diff = targetPressure - simulatedPressures[i];
-        float noise = (rng() % 100 - 50) / 500.0f;
-        simulatedPressures[i] += diff * 0.1f * changeRate + noise;
-        if (simulatedPressures[i] < 0) simulatedPressures[i] = 0;
-        if (simulatedPressures[i] > 100) simulatedPressures[i] = 100;
-    }
-}
-#endif
 
 void MainWindow::onReliabilityTestTimer()
 {
-#if !USE_REAL_ETHERCAT
-    if (!reliabilityTestRunning) return;
-    executeTestPhase();
-#endif
+    // 空实现 - 真实模式使用 EtherCATMaster 内部线程
 }
 
 // ==================== 日志操作 ====================
@@ -656,65 +377,32 @@ void MainWindow::onExportReport()
         "文本文件 (*.txt);;所有文件 (*)");
     
     if (!fileName.isEmpty()) {
-#if USE_REAL_ETHERCAT
         if (master) {
             auto ethercatStats = master->getReliabilityTestStats();
             master->saveTestResultsToFile(fileName.toStdString(), ethercatStats);
             appendLog(QString("测试报告已导出到: %1").arg(fileName), "INFO");
         }
-#else
-        QFile file(fileName);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream out(&file);
-            out << "========================================\n";
-            out << "液压脚撑可靠性测试报告\n";
-            out << "========================================\n\n";
-            out << "生成时间: " << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "\n\n";
-            out << "测试参数:\n";
-            out << QString("  支撑目标压力: %1 bar\n").arg(supportTargetPressure);
-            out << QString("  收回目标压力: < %1 bar\n").arg(retractTargetPressure);
-            out << QString("  支撑超时: %1 秒\n").arg(supportTimeoutMs / 1000);
-            out << QString("  收回超时: %1 秒\n\n").arg(retractTimeoutMs / 1000);
-            out << "测试结果:\n";
-            out << QString("  总测试周期: %1\n").arg(stats.totalCycles);
-            out << QString("  支撑成功率: %1%\n").arg(stats.getSupportSuccessRate(), 0, 'f', 2);
-            out << QString("  收回成功率: %1%\n").arg(stats.getRetractSuccessRate(), 0, 'f', 2);
-            out << QString("  平均支撑时间: %1 ms\n").arg(static_cast<int>(stats.avgSupportTime));
-            out << QString("  平均收回时间: %1 ms\n").arg(static_cast<int>(stats.avgRetractTime));
-            out << "========================================\n";
-            file.close();
-        appendLog(QString("测试报告已导出到: %1").arg(fileName), "INFO");
-        }
-#endif
     }
 }
 
 void MainWindow::onAbout()
 {
-    QString mode;
-#if USE_REAL_ETHERCAT
-    mode = "EtherCAT硬件模式";
-#else
-    mode = "模拟模式";
-#endif
-    
     QMessageBox::about(this, "关于",
         QString("<h2>液压脚撑可靠性测试系统</h2>"
         "<p>版本: 1.0.0</p>"
-        "<p>当前模式: %1</p>"
+        "<p>当前模式: EtherCAT硬件模式</p>"
         "<hr>"
         "<p><b>功能:</b></p>"
         "<ul>"
         "<li>压力传感器监控 (4通道)</li>"
         "<li>继电器控制 (4通道)</li>"
         "<li>自动化可靠性测试</li>"
-        "</ul>").arg(mode));
+        "</ul>"));
 }
 
 // ==================== 定时器更新 ====================
 void MainWindow::onUpdateTimer()
 {
-#if USE_REAL_ETHERCAT
     // 调试：每秒打印一次状态
     static int timerCounter = 0;
     if (timerCounter++ % 10 == 0) {
@@ -723,7 +411,7 @@ void MainWindow::onUpdateTimer()
                  << " masterRunning=" << masterRunning;
     }
     
-    // 从真实硬件读取压力 (后台线程会自动更新 PDO 数据)
+    // 从真实硬件读取压力
     if (master && masterRunning) {
         // 读取电流值用于调试
         static int debugCounter = 0;
@@ -747,33 +435,12 @@ void MainWindow::onUpdateTimer()
             updateDigitalInputDisplay(i + 1, digitalInputs[i]);
         }
     }
-#else
-    // 模拟压力变化
-    simulatePressureChanges();
-    
-    for (int i = 0; i < 4; i++) {
-        updatePressureDisplay(i + 1, simulatedPressures[i], "正常");
-    }
-    
-    static int counter = 0;
-    counter++;
-    for (int i = 1; i <= 8; i++) {
-        bool state = ((counter + i * 17) % 7) < 2;
-        updateDigitalInputDisplay(i, state);
-    }
-#endif
     
     updateSystemUptime();
     
-#if USE_REAL_ETHERCAT
     if (master && master->isReliabilityTestRunning()) {
         updateTestStats();
     }
-#else
-    if (reliabilityTestRunning) {
-        updateTestStats();
-    }
-#endif
 }
 
 // ==================== 辅助函数 ====================
@@ -825,7 +492,6 @@ void MainWindow::updateDigitalInputDisplay(int channel, bool state)
 
 void MainWindow::updateTestStats()
 {
-#if USE_REAL_ETHERCAT
     if (master) {
         auto ethercatStats = master->getReliabilityTestStats();
         ui->lblCyclesValue->setText(QString::number(ethercatStats.total_cycles));
@@ -834,13 +500,6 @@ void MainWindow::updateTestStats()
         ui->lblAvgSupportValue->setText(QString("%1 ms").arg(static_cast<int>(ethercatStats.avg_support_time_ms)));
         ui->lblAvgRetractValue->setText(QString("%1 ms").arg(static_cast<int>(ethercatStats.avg_retract_time_ms)));
     }
-#else
-    ui->lblCyclesValue->setText(QString::number(stats.totalCycles));
-    ui->lblSupportSuccessValue->setText(QString("%1%").arg(stats.getSupportSuccessRate(), 0, 'f', 2));
-    ui->lblRetractSuccessValue->setText(QString("%1%").arg(stats.getRetractSuccessRate(), 0, 'f', 2));
-    ui->lblAvgSupportValue->setText(QString("%1 ms").arg(static_cast<int>(stats.avgSupportTime)));
-    ui->lblAvgRetractValue->setText(QString("%1 ms").arg(static_cast<int>(stats.avgRetractTime)));
-#endif
     
     if (testUptime.isValid()) {
         qint64 elapsed = testUptime.elapsed();
