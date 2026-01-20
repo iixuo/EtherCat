@@ -22,13 +22,8 @@ MainWindow::MainWindow(QWidget *parent)
     // 设置信号槽连接
     setupConnections();
     
-    // 设置初始状态
-    ui->lblSystemStatus->setText("● 正在初始化...");
-    ui->lblSystemStatus->setStyleSheet("color: #f59e0b; font-weight: bold; font-size: 16px;");
-    setControlsEnabled(false);
-    
-    // 延迟初始化系统，让窗口先显示出来
-    QTimer::singleShot(100, this, &MainWindow::initializeSystem);
+    // 延迟初始化，让窗口先显示
+    QTimer::singleShot(0, this, &MainWindow::initializeSystem);
 }
 
 MainWindow::~MainWindow()
@@ -680,7 +675,7 @@ void MainWindow::onExportReport()
             out << QString("  平均收回时间: %1 ms\n").arg(static_cast<int>(stats.avgRetractTime));
             out << "========================================\n";
             file.close();
-            appendLog(QString("测试报告已导出到: %1").arg(fileName), "INFO");
+        appendLog(QString("测试报告已导出到: %1").arg(fileName), "INFO");
         }
 #endif
     }

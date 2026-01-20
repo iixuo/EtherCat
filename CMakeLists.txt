@@ -20,7 +20,7 @@ set(CMAKE_AUTORCC ON)
 if(UNIX AND NOT APPLE)
     option(WITH_IGH_ETHERCAT "Enable IgH EtherCAT Master (ecrt.h, libethercat)" ON)
 else()
-    option(WITH_IGH_ETHERCAT "Enable IgH EtherCAT Master (ecrt.h, libethercat)" OFF)
+option(WITH_IGH_ETHERCAT "Enable IgH EtherCAT Master (ecrt.h, libethercat)" OFF)
 endif()
 
 message(STATUS "WITH_IGH_ETHERCAT = ${WITH_IGH_ETHERCAT}")
@@ -28,7 +28,14 @@ message(STATUS "WITH_IGH_ETHERCAT = ${WITH_IGH_ETHERCAT}")
 # -----------------------------
 # Qt (支持 Qt5 和 Qt6)
 # -----------------------------
-# 优先查找 Qt6，如果没有则使用 Qt5
+# 可通过 -DPREFER_QT5=ON 强制使用 Qt5
+option(PREFER_QT5 "Prefer Qt5 over Qt6" OFF)
+
+if(PREFER_QT5)
+    find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
+    message(STATUS "Found Qt5: ${Qt5_VERSION}")
+    set(QT_VERSION_MAJOR 5)
+else()
 find_package(Qt6 QUIET COMPONENTS Core Widgets)
 if(Qt6_FOUND)
     message(STATUS "Found Qt6: ${Qt6_VERSION}")
@@ -37,6 +44,7 @@ else()
     find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
     message(STATUS "Found Qt5: ${Qt5_VERSION}")
     set(QT_VERSION_MAJOR 5)
+    endif()
 endif()
 
 # -----------------------------
@@ -55,7 +63,7 @@ set(APP_SOURCES
 )
 
 # EtherCAT 源文件（稍后根据库是否找到决定）
-set(EC_SOURCES "")
+    set(EC_SOURCES "")
 
 add_executable(${PROJECT_NAME}
     ${APP_SOURCES}
@@ -123,10 +131,10 @@ if(WITH_IGH_ETHERCAT AND UNIX AND NOT APPLE)
         
         # 添加 EtherCATMaster.cpp 源文件
         target_sources(${PROJECT_NAME} PRIVATE src/ethercat/EtherCATMaster.cpp)
-        
-        target_include_directories(${PROJECT_NAME} PRIVATE ${ETHERCAT_INCLUDE_DIR})
-        target_link_libraries(${PROJECT_NAME} PRIVATE ${ETHERCAT_LIBRARY})
-        target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_IGH_ETHERCAT=1)
+
+    target_include_directories(${PROJECT_NAME} PRIVATE ${ETHERCAT_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${ETHERCAT_LIBRARY})
+    target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_IGH_ETHERCAT=1)
         message(STATUS "Building with EtherCAT hardware support")
     endif()
 else()

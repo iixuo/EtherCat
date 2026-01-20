@@ -176,11 +176,12 @@ EtherCATMaster::EtherCATMaster()
     // 初始化日志记录
     last_log_file_check = std::chrono::system_clock::now();
     
-    // 启动全局快捷键监听
-    if (!g_hotkey_enabled) {
-        g_hotkey_enabled = true;
-        std::thread(hotkeyListener).detach();
-    }
+    // 注意：不在GUI模式下启动快捷键监听，因为会干扰Qt事件循环
+    // 快捷键监听仅在命令行模式下使用
+    // if (!g_hotkey_enabled) {
+    //     g_hotkey_enabled = true;
+    //     std::thread(hotkeyListener).detach();
+    // }
 }
 
 EtherCATMaster::~EtherCATMaster() {
@@ -279,12 +280,10 @@ bool EtherCATMaster::verifyOperation(const std::string& operation_name) {
         // 显示详细状态信息
         printHealthStatus();
         
-        // 对于警告状态，允许继续操作，但给出提示
+        // 对于警告状态，允许继续操作（在GUI模式下不等待用户输入）
         if (current_status == MasterStatus::STATUS_WARNING) {
-            std::cout << "警告: 主站处于警告状态，操作可能不可靠，是否继续? (y/n): ";
-            std::string response;
-            std::getline(std::cin, response);
-            return (response == "y" || response == "Y");
+            std::cout << "警告: 主站处于警告状态，但继续执行操作" << std::endl;
+            return true;  // 警告状态下仍然允许操作
         }
         return false;
     }
@@ -1637,33 +1636,19 @@ bool EtherCATMaster::toggleRelayChannel(uint8_t channel) {
 
 float EtherCATMaster::readAnalogInputAsPressure(uint8_t channel) {
     if (channel < 1 || channel > 4) {
-        std::cerr << "错误: 通道号必须在 1-4 范围内" << std::endl;
         return -1.0f;
     }
 
     if (!running) {
-        std::cerr << "错误: 主站未运行" << std::endl;
         return -1.0f;
     }
 
     int16_t raw_value = readAnalogInputPDO(channel);
     float current_value = convertAnalogToCurrent(raw_value);
     float pressure_value = convertCurrentToPressure(current_value);
-    PressureStatus status = checkPressureStatus(channel);
     
-    std::cout << "模拟输入通道 " << static_cast<int>(channel) << " - "
-              << "压力: " << std::fixed << std::setprecision(2) << pressure_value << "bar, "
-              << "电流: " << std::fixed << std::setprecision(3) << current_value << "mA, "
-              << "状态: " << getPressureStatusString(status) << std::endl;
-    
-    // 添加安全警告
-    if (status == PRESSURE_OVERLOAD) {
-        std::cerr << "警告: 通道 " << channel << " 压力超过200bar，传感器可能损坏!" << std::endl;
-    } else if (status == PRESSURE_OVER_RANGE) {
-        std::cout << "注意: 通道 " << channel << " 压力超过量程上限" << std::endl;
-    } else if (status == PRESSURE_ZERO_DRIFT) {
-        std::cout << "注意: 通道 " << channel << " 检测到零点漂移" << std::endl;
-    }
+    // 注意：不输出日志到控制台，避免阻塞 UI
+    // 如果需要详细日志，可以使用 log() 函数
     
     return pressure_value;
 }

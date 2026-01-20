@@ -9,7 +9,7 @@
 // 根据平台决定是否使用真实EtherCAT
 #if defined(__linux__) && WITH_IGH_ETHERCAT
     #define USE_REAL_ETHERCAT 1
-    #include "ethercat/EtherCATMaster.h"
+#include "ethercat/EtherCATMaster.h"
 #else
     #define USE_REAL_ETHERCAT 0
     #include <random>
