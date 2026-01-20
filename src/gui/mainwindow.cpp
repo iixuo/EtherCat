@@ -63,28 +63,37 @@ void MainWindow::initializeSystem()
         }, Qt::QueuedConnection);
     });
     
+    std::cout << "[UI] 开始初始化主站..." << std::endl;
+    
     // 初始化主站
     if (master->initialize()) {
         masterInitialized = true;
+        std::cout << "[UI] 主站初始化成功" << std::endl;
         appendLog("EtherCAT 主站初始化成功", "INFO");
         
+        std::cout << "[UI] 开始启动主站..." << std::endl;
         // 启动主站
         if (master->start()) {
             masterRunning = true;
+            std::cout << "[UI] 主站启动成功, masterRunning=" << masterRunning << std::endl;
             ui->lblSystemStatus->setText("● 运行中");
             ui->lblSystemStatus->setStyleSheet("color: #2563eb; font-weight: bold; font-size: 16px;");
             appendLog("EtherCAT 主站已启动", "INFO");
             setControlsEnabled(true);
         } else {
+            std::cout << "[UI] 主站启动失败" << std::endl;
             appendLog("EtherCAT 主站启动失败", "ERROR");
             ui->lblSystemStatus->setText("● 启动失败");
             ui->lblSystemStatus->setStyleSheet("color: #333333; font-weight: bold; font-size: 16px;");
         }
     } else {
+        std::cout << "[UI] 主站初始化失败" << std::endl;
         appendLog("EtherCAT 主站初始化失败", "ERROR");
         ui->lblSystemStatus->setText("● 初始化失败");
         ui->lblSystemStatus->setStyleSheet("color: #333333; font-weight: bold; font-size: 16px;");
     }
+    
+    std::cout << "[UI] 初始化流程完成, 准备启动定时器..." << std::endl;
     
     ui->btnStopReliability->setEnabled(false);
     

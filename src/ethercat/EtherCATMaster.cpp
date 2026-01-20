@@ -414,10 +414,10 @@ void EtherCATMaster::updateMasterStatus() {
         master_state_info.last_update = std::chrono::system_clock::now();
     }
     
-    // 确定状态级别
+    // 确定状态级别 (实际有6个从站: EK1100, EL1008, EL3074, EL2634, EL6001, EL6751)
     if (!ms.link_up) {
         current_status = MasterStatus::STATUS_ERROR;
-    } else if (ms.slaves_responding != 3) {
+    } else if (ms.slaves_responding != 6) {
         current_status = MasterStatus::STATUS_WARNING;
     } else if ((ms.al_states & 0x08) == 0) {
         current_status = MasterStatus::STATUS_WARNING;
@@ -1341,9 +1341,9 @@ bool EtherCATMaster::start() {
     // 启动任务处理线程
     // task_thread = std::thread(&EtherCATMaster::taskThreadFunc, this);
     
-    // 等待主站进入运行状态（减少等待时间，避免阻塞UI）
-    if (!waitForOperational(1000)) {
-        log(LogLevel::LOG_WARNING, "Master", "主站未能立即进入运行状态，继续启动...");
+    // 等待主站进入运行状态（增加等待时间确保从站进入OP状态）
+    if (!waitForOperational(5000)) {
+        log(LogLevel::LOG_WARNING, "Master", "主站未能在5秒内进入运行状态，继续启动...");
     }
     
     log(LogLevel::LOG_INFO, "Master", "EtherCAT 主站已启动并运行");
