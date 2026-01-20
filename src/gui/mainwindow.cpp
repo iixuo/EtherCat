@@ -91,9 +91,12 @@ void MainWindow::initializeSystem()
     // 启动界面更新定时器 (100ms)
     connect(updateTimer, &QTimer::timeout, this, &MainWindow::onUpdateTimer);
     updateTimer->start(100);
+    std::cout << "[UI] 定时器已启动, masterRunning=" << masterRunning << std::endl;
     
     // 设置可靠性测试定时器
     connect(reliabilityTestTimer, &QTimer::timeout, this, &MainWindow::onReliabilityTestTimer);
+    
+    appendLog("系统初始化完成，开始数据刷新", "INFO");
 }
 
 void MainWindow::setupConnections()
