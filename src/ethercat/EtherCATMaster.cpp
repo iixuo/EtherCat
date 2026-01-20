@@ -2141,7 +2141,12 @@ std::vector<float> EtherCATMaster::readAllAnalogInputsAsCurrent() {
 std::vector<float> EtherCATMaster::readAllAnalogInputsAsPressure() {
     std::vector<float> pressures(4, 0.0f);
     
-    if (!running || !domain_data) {
+    if (!running) {
+        std::cerr << "[DEBUG] readAllAnalogInputsAsPressure: running=false" << std::endl;
+        return pressures;
+    }
+    if (!domain_data) {
+        std::cerr << "[DEBUG] readAllAnalogInputsAsPressure: domain_data=nullptr" << std::endl;
         return pressures;
     }
     
