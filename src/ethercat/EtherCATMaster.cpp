@@ -1816,14 +1816,35 @@ float EtherCATMaster::readAnalogInput(uint8_t channel) {
 }
 
 int16_t EtherCATMaster::readAnalogInputPDO(uint8_t channel) {
-    if (!domain_data) return -1;
+    if (!domain_data) {
+        std::cerr << "[PDO] domain_data is nullptr!" << std::endl;
+        return -1;
+    }
     if (channel < 1 || channel > 4) return -1;
+    
+    // 调试：打印偏移量
+    static bool printed = false;
+    if (!printed) {
+        std::cout << "[PDO] 偏移量: off_ai_val[0]=" << off_ai_val[0] 
+                  << " [1]=" << off_ai_val[1]
+                  << " [2]=" << off_ai_val[2]
+                  << " [3]=" << off_ai_val[3] << std::endl;
+        printed = true;
+    }
     
     // EL3074 模拟输入数据在域数据中的偏移量
     uint8_t* analog_data = domain_data + off_ai_val[channel - 1];
     
     // 读取16位值
-    return EC_READ_S16(analog_data);
+    int16_t raw = EC_READ_S16(analog_data);
+    
+    // 每10秒打印一次原始值
+    static int counter = 0;
+    if (counter++ % 1000 == 0) {
+        std::cout << "[PDO] 通道" << (int)channel << " 原始值=" << raw << std::endl;
+    }
+    
+    return raw;
 }
 
 // 添加模拟量转换函数
