@@ -7,6 +7,7 @@
 #include <QTextStream>
 #include <QScrollBar>
 #include <QCoreApplication>
+#include <QDebug>
 #include <cmath>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -714,8 +715,17 @@ void MainWindow::onAbout()
 void MainWindow::onUpdateTimer()
 {
 #if USE_REAL_ETHERCAT
-    // 从真实硬件读取压力
+    // 从真实硬件读取压力 (后台线程会自动更新 PDO 数据)
     if (master && masterRunning) {
+        // 读取电流值用于调试
+        static int debugCounter = 0;
+        if (debugCounter++ % 50 == 0) { // 每5秒打印一次调试信息
+            auto currents = master->readAllAnalogInputsAsCurrent();
+            for (size_t i = 0; i < currents.size(); i++) {
+                qDebug() << "通道" << (i+1) << "电流:" << currents[i] << "mA";
+            }
+        }
+        
         auto pressures = master->readAllAnalogInputsAsPressure();
         for (size_t i = 0; i < pressures.size() && i < 4; i++) {
             auto status = master->checkPressureStatus(i + 1);
